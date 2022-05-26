@@ -22,49 +22,36 @@ for j = 1:sd_size(1)
     if intmethod == 1
         M(j) = sum(1e4 * Nd_total .* bins.^(ii) .* bins_diff); % M_rect
     elseif intmethod == 2
-        M_trap = 1e4 * trapz(bins, Nd_total .* bins.^(ii));
+        a = bins-0.5*bins_diff;
+        b = bins+0.5*bins_diff;
+        M_trap = 1/2 * sum(1e4 * Nd_total .* (a.^(ii)+b.^(ii)) .* bins_diff);
         M(j) = M_trap;
     elseif intmethod == 3
-        j1 = 1:length(bins)-1;
-        j2 = 2:length(bins);
-
-        a = bins(j1);
-        b = bins(j2);
-        fa = Nd_total(j1);
-        fb = Nd_total(j2);
-        ab2 = (a+b)/2;
-        yi = interp1(bins, Nd_total, ab2,'pchip');
-        simps = (b-a)/6 .* (fa + 4.*yi + fb);
-
-        M_simpson = sum(1e4*simps.*ab2.^ii);
+        a = bins-0.5*bins_diff;
+        b = bins+0.5*bins_diff;
+        M_simpson = 1/6 * sum(1e4 * Nd_total .* (a.^(ii)+4*bins.^(ii)+b.^(ii)) .* bins_diff);
         M(j) = M_simpson;
     elseif intmethod == 4
-        j1 = 1:length(bins)-1;
-        j2 = 2:length(bins);
-
-        a = bins(j1);
-        b = bins(j2);
-        fa = Nd_total(j1);
-        fb = Nd_total(j2);
-        ab2 = (a+b)/2;
-
+        a = bins-0.5*bins_diff;
+        b = bins+0.5*bins_diff;
         a2b3 = (2*a+b)/3;
         ab23 = (a+2*b)/3;
-        combined = sort([a2b3 ab23]);
-        yia2b3 = interp1(bins,Nd_total,combined,'pchip');
-
-        yi1 = yia2b3(1:2:end);
-        yi2 = yia2b3(2:2:end);
-
-        simps38 = (b-a)/8 .* (fa' + 3.*yi1' + 3 .* yi2' + fb');
-
-        M_simpson38 = 1e4 * sum(simps38.*ab2.^ii);
+        M_simps38 = 1/8 * sum(1e4 * Nd_total .* (a.^(ii)+3*a2b3.^(ii)+3*ab23.^(ii)+b.^(ii)) .* bins_diff);
         M(j) = M_simpson38;
     elseif intmethod == 5
-        mult_vector = ones(1,length(bins));
-        mult_vector(2:2:length(bins)-1) = 4*mult_vector(2:2:length(bins)-1);
-        mult_vector(3:2:length(bins)-1) = 2*mult_vector(3:2:length(bins)-1);
-        M_simpscomposite = 1e4 * sum(bins_diff/3.*mult_vector.*Nd_total .*bins.^ii);
+        a = Nd_total(1:end-1);
+        b = Nd_total(2:end);
+        c = 1/6*bins_diff(1:end-1);
+        d = 1/6*bins_diff(2:end);
+        e = bins(2:end)-0.25*bins_diff(2:end)-0.25*bins_diff(1:end-1);
+        f = bins(1)-0.5*bins_diff(1);
+        g = bins(end)+0.5*bins_diff(end);
+        mult_vector = ones(1,length(bins)-1);
+        mult_vector(1:2:length(bins)-1) = 4*mult_vector(1:2:length(bins)-1);
+        mult_vector(2:2:length(bins)-1) = 2*mult_vector(2:2:length(bins)-1);
+        M_low = 1e4 * bins_diff(1)/3 * Nd_total(1) * f^ii;
+        M_high = 1e4 * bins_diff(end)/3 * Nd_total(end) * g^ii;
+        M_simpscomposite = M_low + M_high + 1e4 * sum(mult_vector.*(c.*a+d.*b).*e.^ii);
         M(j) = M_simpscomposite;
     end
 end
